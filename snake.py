@@ -7,12 +7,16 @@ pygame.display.set_caption('hungry snake')
 body_index = 1
 
 class snake:
-    def __init__(self):
+    def __init__(self, player_index):
         self.length = 0
         self.snake_position = [] 
-        self.snake_position.append((300,300))   
+        self.player_index = player_index
+        if self.player_index == 1:
+            self.snake_position.append(player1_start_position)   
+        elif self.player_index == 2:
+            self.snake_position.append(player2_start_position)
         self.player_snake_head = pygame.sprite.GroupSingle()
-        self.player_snake_head.add(self.snake_head())
+        self.player_snake_head.add(self.snake_head(player_index))
         self.player_snake_body = pygame.sprite.Group()
         self.new_growing_position = ()
                 
@@ -35,35 +39,50 @@ class snake:
         self.snake_position[0] = self.player_snake_head.sprite.rect.center        
     class snake_head(pygame.sprite.Sprite) :
 
-        def __init__ (self) :
+        def __init__ (self,player_index) :
             #add the position of snake to snake_position list
             #direction of snake
             self.mode = 0
+            self.player_index = player_index
             #defacult
             self.Direction = W
 
             super().__init__()
             self.image = pygame.Surface((snake_width,snake_hight))
-            self.rect = self.image.get_rect(center = (400,400))
-            self.image.fill("red")
+            if player_index == 1:
+                self.rect = self.image.get_rect(center = player1_start_position)
+                self.image.fill("red")
+            elif player_index == 2:
+                self.rect = self.image.get_rect(center = player2_start_position)
+                self.image.fill('blue')
         def update(self):
             self.control()
             self.keep_walking()
         def control(self):
-            if pygame.key.get_pressed()[pygame.K_w] and self.Direction != S:
-                self.Direction = W
-            if pygame.key.get_pressed()[pygame.K_s] and self.Direction != W:
-                self.Direction = S
-            if pygame.key.get_pressed()[pygame.K_a] and self.Direction != D:
-                self.Direction = A
-            if pygame.key.get_pressed()[pygame.K_d] and self.Direction != A:
-                self.Direction = D
+            if self.player_index == 1:
+                if pygame.key.get_pressed()[pygame.K_w] and self.Direction != S:
+                    self.Direction = W
+                if pygame.key.get_pressed()[pygame.K_s] and self.Direction != W:
+                    self.Direction = S
+                if pygame.key.get_pressed()[pygame.K_a] and self.Direction != D:
+                    self.Direction = A
+                if pygame.key.get_pressed()[pygame.K_d] and self.Direction != A:
+                    self.Direction = D
+            elif self.player_index == 2:
+                if pygame.key.get_pressed()[pygame.K_UP] and self.Direction != S:
+                    self.Direction = W
+                if pygame.key.get_pressed()[pygame.K_DOWN] and self.Direction != W:
+                    self.Direction = S
+                if pygame.key.get_pressed()[pygame.K_LEFT] and self.Direction != D:
+                    self.Direction = A
+                if pygame.key.get_pressed()[pygame.K_RIGHT] and self.Direction != A:
+                    self.Direction = D
         def keep_walking(self):  
             self.rect.center = moving(self)
             
     class snake_body(pygame.sprite.Sprite):
         def __init__(self,position,index):
-            self.mode = 0
+
             self.index = index
             super().__init__()
             self.image = pygame.Surface((snake_width,snake_hight))
@@ -138,15 +157,7 @@ def moving(snack):
         snack.rect.x -= Speed
     elif snack.Direction == D:
         snack.rect.x += Speed
-    if snack.mode == 0:
-        if snack.rect.y > 800:
-            snack.rect.y = 0
-        elif snack.rect.y < 0:
-            snack.rect.y = 800
-        if snack.rect.x > 800:
-            snack.rect.x = 0
-        elif snack.rect.x < 0:
-            snack.rect.x = 800 
+
     return snack.rect.center
 
 def show_score(score):
@@ -179,6 +190,8 @@ test_font = pygame.font.Font(None, 50)
 test_font_2 = pygame.font.Font(None, 30)
 wall_width = 20
 four_corner = [(0,0),(0,0),(0,800 - wall_width),(800 - wall_width,0)]
+player1_start_position = (300,300)
+player2_start_position = (400,400)
 
 #set: need 4 walls in group
 walls = pygame.sprite.Group()
@@ -224,8 +237,11 @@ def restart():
     timer = 0
     user_text = ''
     score = 0
-
-player_snake = snake()
+player1 = 1
+player2 = 2
+player_snake = snake(player1)
+if player2 == 2:
+    player2_snake = snake(player2)
 restart()
 while True:
     for event in pygame.event.get() :
@@ -241,21 +257,26 @@ while True:
                     Stop = False
                 else:
                     Stop = True
-            elif event.key == pygame.K_LEFT:
+            elif event.key == pygame.K_COMMA:
+                print(1)
                 Difficulty -= 1
                 timer = 0
                 if Difficulty <= 0: Difficulty = 1
-            elif event.key == pygame.K_RIGHT:
+            elif event.key == pygame.K_PERIOD:
                 Difficulty += 1
                 timer = 0
                 if Difficulty > 10: Difficulty = 10
             elif event.key == pygame.K_0:
                 restart()
-                player_snake.__init__()
+                player_snake.__init__(player1)
+                if player2 == 2:
+                    player2_snake.__init__(player2)
     if  not Stop and not Game_failure :
         #growing must place at before of collision between body and head
         # l store position of last body position for placing new body
         growing(player_snake)
+        if player2 == 2:
+            growing(player2_snake)
         #map
         screen.blit(ground, (0,0))
         #draw wall
@@ -266,6 +287,9 @@ while True:
         foods.update()
         #check collision
         check_collision_between_food_and_snake(player_snake, foods)
+        if player2 == 2:
+            check_collision_between_food_and_snake(player2_snake,foods)
+            check_collision_between_other_and_head(player2_snake, walls)
         check_collision_between_other_and_head(player_snake, walls)
         #show_score(score)
         show_score(score)
@@ -275,6 +299,8 @@ while True:
         timer += 1
         if timer == Difficulty:
             player_snake.update()
+            if player2 == 2:
+                player2_snake.update()
             pygame.display.update()  
             timer = -1
         # user input
